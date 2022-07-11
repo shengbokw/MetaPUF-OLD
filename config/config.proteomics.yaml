@@ -1,0 +1,54 @@
+raws:
+    Proteins: "SRP273822"
+    ThermoFold: "UWPRQE_16"
+    ThermoRaw: ["2018_March_5_UWPRQE_HatchMicro_16.raw"]
+sample: "sample"
+outputdir: "./"
+tmp_dir: "tmp"
+mem:
+    normal_mem_per_core_gb: 4
+    big_mem_total_gb: 1600
+    big_mem_cores: 8
+    big_mem_per_core_gb: 200
+thermo:
+    url: "https://github.com/compomics/ThermoRawFileParser/releases/download/{version}/ThermoRawFileParser.zip"
+    exe: "ThermoRawFileParser.exe"
+    version: "v1.2.3"
+searchgui:
+    url: "http://genesis.ugent.be/maven2/eu/isas/searchgui/SearchGUI/{version}/SearchGUI-{version}-mac_and_linux.tar.gz"
+    jar: "SearchGUI-{version}/SearchGUI-{version}.jar"
+    version: "4.0.41"
+    par:
+        prec_tol: 20
+        prec_ppm: 1
+        frag_tol: 0.02
+        frag_ppm: 0
+        digestion: 0
+        enzyme: "Trypsin"
+        specificity: 0
+        mc: 2
+        fixed_mods: "Carbamidomethylation of C"
+        variable_mods: "Oxidation of M"
+        min_charge: 2
+        max_charge: 4
+        fi: "b"
+        ri: "y"
+        min_isotope: 0
+        max_isotope: 1
+        import_peptide_length_min: 6
+        import_peptide_length_max: 60
+        xtandem_noise_suppr: 0
+        xtandem_quick_acetyl: 1
+        xtandem_quick_pyro: 1
+        xtandem_refine: 1
+        msgf_instrument: 1
+        msgf_fragmentation: 3
+        msgf_protocol: 0
+        msgf_min_pep_length: 6
+        msgf_max_pep_length: 60
+        msgf_num_ptms: 2
+        comet_num_ptms: 3
+peptideshaker:
+    url: "http://genesis.ugent.be/maven2/eu/isas/peptideshaker/PeptideShaker/{version}/PeptideShaker-{version}.zip"
+    jar: "PeptideShaker-{version}/PeptideShaker-{version}.jar"
+    version: "2.0.33"
