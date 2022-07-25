@@ -16,6 +16,7 @@ configfile:
 # relevant paths
 BINDIR      = srcdir("workflow/bin")
 ENVDIR      = srcdir("workflow/envs")
+#STUDYDIR    =os.environ.get("STUDYDIR", config['studydir'])
 OUTPUTDIR   = os.environ.get("OUTPUTDIR", config['outputdir'])
 TMPDIR      = os.environ.get("TMPDIR", config['tmp_dir'])
 
@@ -26,6 +27,7 @@ workdir:
     OUTPUTDIR
 
 #input files
+STUDY= os.environ.get("STUDY", config["raws"]["Study"])
 I_PROTEINS = os.environ.get("PROTEINS", config["raws"]["Proteins"])
 I_THERMORAW = os.environ.get("THERMORAW", config["raws"]["ThermoRaw"])
 THERMOFOLD = os.environ.get("THERMOFOLD", config["raws"]["ThermoFold"])
@@ -41,6 +43,7 @@ THERMOFOLD = os.environ.get("THERMOFOLD", config["raws"]["ThermoFold"])
 # data
 # PROTEINS_ORI = expand("proteins/{pname}_original.fasta", pname=I_PROTEINS)
 # MAPPED_HEADER = expand("proteins/{pname}_mapping.csv", pname=I_PROTEINS)
+METADATA_FILE=expand("{iname}_info.tsv",iname=STUDY)
 PROTEINS_PROC  = expand("proteins/{pname}.fasta", pname=I_PROTEINS)
 PROTEINS_DECOY = expand("proteins/{pname}_concatenated_target_decoy.fasta", pname=I_PROTEINS)
 
@@ -69,18 +72,59 @@ SEARCHGUI_PAR_PARAMS = " ".join(["-%s %s" % (k, "'%s'" % v if isinstance(v, str)
 
 PEPTIDESHAKER_JAR = os.path.join(BINDIR, "PeptideShaker-2.0.33/PeptideShaker-2.0.33.jar")
 
+PYTHON_SPT = os.path.join("","assembly_metadata.py")
+
 ##################################################
 # RULES
 # Each subsequent output file needs to have its target path specified at the beginning.
 ##################################################
 rule ALL:
     input:
+        metafile=METADATA_FILE,
         thermo=THERMOMGF,
         # mapping=[PROTEINS_PROC, MAPPED_HEADER],
         searchgui=[PROTEINS_DECOY, SEARCHGUI_PAR, SEARCHGUI_ZIP],
         report=[PROTEIN_TMP_RPT, PEPTIDE_TMP_RPT, PSM_TMP_RPT],
         peptideshaker=PEPTIDESHAKER_MZID
         # recover=[PROTEIN_RPT, PEPTIDE_RPT]
+
+
+#########################
+# Fetch metadata from European Nucleotide Archive
+#########################
+rule fetch_metadata:
+    input:
+        script=PYTHON_SPT
+    output:
+        METADATA_FILE
+    params:
+        study=STUDY,
+        input_dir=OUTPUTDIR
+    log:
+        expand("logs/{iname}_metadata.log", iname=STUDY)
+    threads: 1
+    message:
+        "Fetch METADATA: {input.script} -> {output}"
+    shell:
+        "python {input.script} -s {params.study} -i {params.input_dir} &> {log} && touch {output}"
+
+#########################
+# Generate protein search database
+#########################
+# rule generate_db:
+#     input:
+#         study=STUDY
+#         ver='5.0'
+#         input_dir=OUTPUTDIR
+#         metadata=METADATA_FILE
+#
+#     log:
+#         expand("logs/db_generate.log")
+#     threads: 1
+#
+#     shell:
+#         "python metagenomics_db/main.py -s {input.study} -v {input.ver} "
+#         "-i {input.input_dir} -m {input.metadata} -b &> {log}"
 
 
 #########################
@@ -100,25 +144,6 @@ rule thermorawfileparser:
         "ThermoRawFileParser: {input} -> {output}"
     shell:
         "mono {input.exe} -d=$(dirname {input.raws[0]}) -o=$(dirname {output[0]}) -f=1 -m=0 &> {log}"
-
-
-#########################
-# Sequence header mapping change before SearchGUI
-#########################
-# rule replace_header:
-#     input:
-#         PROTEINS_ORI
-#     output:
-#         faa=PROTEINS_PROC,
-#         map=MAPPED_HEADER
-#     log:
-#         expand("logs/{fname}_replace_header.log", fname=THERMOFOLD)
-#     threads: 1
-#     message:
-#         "Replace header: {input} -> {output}"
-#     shell:
-#         "python replace_sequence_head.py -in {input} -out {output.faa} "
-#         "-map {output.map} -b &> {log}"
 
 
 #########################
@@ -238,72 +263,39 @@ rule peptideshaker_load:
 
 
 #########################
-# Recover sequence header sfter PeptideShaker
+# Gff file
 #########################
-#rule recover_mzid:
-#    input:
-#        mzid=PEPTIDESHAKER_MZID,
-#        map=MAPPED_HEADER
-#    output:
-#        FINAL_MZID
-#    log:
-#        expand("logs/{fname}_recover_header.log", fname=THERMOFOLD)
-#    threads: 1
-#    message:
-#        "Replace header: {input} -> {output}"
-#    shell:
-#        "python replace_sequence_head.py -in {input.mzid} -out {output} "
-#        "-map {input.map} -a &> {log}"
-
-
-# rule recover_protein:
+# rule gff_format_file:
 #     input:
-#         map=MAPPED_HEADER,
-#         protein=PROTEIN_TMP_RPT
-#     output:
-#         PROTEIN_RPT
+#         study=STUDY
+#         ver='5.0'
+#         input_dir=STUDYDIR
+#         metadata=METADATA_FILE
+#
 #     log:
-#         expand("logs/{fname}_recover_protein_report.log", fname=THERMOFOLD)
+#         expand("logs/gff_generate.log")
 #     threads: 1
-#     message:
-#         "Replace header: {input.protein} -> {output}"
+#
 #     shell:
-#         "python replace_sequence_head.py -in {input.protein} "
-#         "-out {output} -map {input.map} -a &> {log}"
+#         "python metagenomics_db/main.py -s {input.study} -v {input.ver} "
+#         "-i {input.input_dir} -m {input.metadata} -b &> {log}"
 
 
-# rule recover_peptide:
-#     input:
-#         map=MAPPED_HEADER,
-#         peptide=PEPTIDE_TMP_RPT
-#     output:
-#         PEPTIDE_RPT
-#     log:
-#         expand("logs/{fname}_recover_peptide_report.log", fname=THERMOFOLD)
-#     threads: 1
-#     message:
-#         "Replace header: {input.peptide} -> {output}"
-#     shell:
-#         "python replace_sequence_head.py -in {input.peptide} "
-#         "-out {output} -map {input.map} -a &> {log}"
 
-# when using -zip to export files, the obtained zip file will not contain .cpsx
-# file, what I did is first use -out to get the cpsx file, then use zip function
-# to include the corresponding mgf files and fasta file.
-# rule peptideshaker_report:
-#     input:
-#         archive=PEPTIDESHAKER_ZIP,
-#         jar=PEPTIDESHAKER_JAR
-#     output:
-#         PEPTIDESHAKER_REPORT
-#     log:
-#         expand("logs/{fname}_PeptideShaker_report.log",fname=THERMOFOLD)
-#     threads: 10
-#     conda:
-#         os.path.join(ENVDIR, "IMP_proteomics.yaml")
-#     message:
-#         "PeptideShaker report: {input.archive}"
-#     shell:
-#         "java -cp {input.jar} eu.isas.peptideshaker.cmd.ReportCLI "
-#         "-in {input.archive} -out_reports $(dirname {output}) -reports 6,9 &> {log} && "
-#         "touch {output}"
+########################
+Generate post processing reports
+########################
+rule post_processing:
+   input:
+       sample_info=SAMPLE_INFO,
+       pxd=PXD
+   output:
+       PROCESSED_RPT
+   log:
+       expand("logs/{fname}_post_processing.log", fname=SAMPLES)
+   threads: 1
+   message:
+       "Post-processing: {input} -> {output}"
+   shell:
+       "python post_report_generation/main.py -s {input.sample_info} -r ./ "
+       "-p {input.pxd} &> {log}"
