@@ -1,15 +1,13 @@
 raws:
+    Study: "ERP133749"
     Proteins: "SRP273822"
+    Pride_id: "PXD020692"
+    Version: "5.0"
     ThermoFold: "UWPRQE_16"
     ThermoRaw: ["2018_March_5_UWPRQE_HatchMicro_16.raw"]
 sample: "sample"
 outputdir: "./"
 tmp_dir: "tmp"
-mem:
-    normal_mem_per_core_gb: 4
-    big_mem_total_gb: 1600
-    big_mem_cores: 8
-    big_mem_per_core_gb: 200
 thermo:
     url: "https://github.com/compomics/ThermoRawFileParser/releases/download/{version}/ThermoRawFileParser.zip"
     exe: "ThermoRawFileParser.exe"

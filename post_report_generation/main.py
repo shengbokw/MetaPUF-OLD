@@ -18,7 +18,7 @@ import subprocess
 from argparse import ArgumentParser
 import pandas as pd
 
-from post_report_generation import get_track_beds as gt
+from post_report_generation import track_hubs as th
 
 def dir_path(string):
     if os.path.isdir(string):
@@ -40,28 +40,19 @@ def main():  # noqa: C901
         required=True,
         help="Absolute path of the sample metadata file",)
     parser.add_argument(
-        "-r","--reports_dir",
-        type=dir_path,
-        required=True,
-        help="full path of the directory containing processed metaproteomics reports",)
-    parser.add_argument(
         "-p","--pride_id",
         type=str,
         required=True,
         help="PRIDE id for the reanalysed study",)
 
     args = parser.parse_args()
-    sample_info=pd.read_csv(os.path.join(args.reports_dir, args.sample_info), sep=',')
+    sample_info=pd.read_csv(args.sample_info, sep=',')
     samples=list(set(sample_info['Sample'].to_list()))
-    results_folder=os.path.join(args.reports_dir, "results")
-    if not os.path.isdir(results_folder):
-        subprocess.Popen(" ".join(["mkdir ", results_folder]), shell=True)
-    os.makedirs(results_folder, exist_ok=True)
 
     for sample in samples:
-        get_track_beds('reports/peptide/'+sample+'_peptide_report.txt',
-                        'reports/protein/'+sample+'_protein_report.txt',
-                        'reports/processed_'+sample+'_peptide_report.csv',
+        th.get_track_beds('results/reports/peptides/'+sample+'_peptide_report.txt',
+                        'results/reports/proteins/'+sample+'_protein_report.txt',
+                        'results/reports/processed/processed_'+sample+'_peptide_report.csv',
                         args.pride_id)
 
 
