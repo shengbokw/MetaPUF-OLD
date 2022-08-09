@@ -1,4 +1,0 @@
-Building DAG of jobs...
-MissingInputException in line 140 of /Users/shengbo_wang/Documents/MetaPUF/MetaPUF/Snakefile:
-Missing input files for rule fetch_raw_files:
-http://ftp.pride.ebi.ac.uk/pride/data/archive/2021/04/PXD020692/2018_March_5_UWPRQE_HatchMicro_03.raw

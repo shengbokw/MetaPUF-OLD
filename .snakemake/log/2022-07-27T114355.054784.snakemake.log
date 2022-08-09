@@ -1,3 +1,0 @@
-NameError in line 338 of /Users/shengbo_wang/Documents/MetaPUF/MetaPUF/Snakefile:
-name 'SAMPLES' is not defined
-  File "/Users/shengbo_wang/Documents/MetaPUF/MetaPUF/Snakefile", line 338, in <module>

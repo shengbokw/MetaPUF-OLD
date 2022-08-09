@@ -1,5 +1,0 @@
-Building DAG of jobs...
-MissingInputException in line 138 of /Users/shengbo_wang/Documents/MetaPUF/MetaPUF/Snakefile:
-Missing input files for rule thermorawfileparser:
-/Users/shengbo_wang/Documents/MetaPUF/MetaPUF/workflow/bin/ThermoRawFileParser/ThermoRawFileParser.exe
-UWPRQE_16/2018_March_5_UWPRQE_HatchMicro_03.raw

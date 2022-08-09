@@ -35,15 +35,19 @@ Samples         = sample_info['Sample'].to_list()
 sample_info['Raw file URLs'].to_csv("config/rawurls.txt", index=False, header=False)
 RawURLs         = os.path.join("","config/rawurls.txt")
 Proteins        = sample_info['Database'].to_list()
+HUMAN_FASTA = os.path.join(CONFIGDIR, "human_db.fa")
+CRAP_FASTA = os.path.join(CONFIGDIR, "crap_db.fa")
 
 #input files
 STUDY = os.environ.get("STUDY", config["raws"]["Study"])
 PRIDE_ID = os.environ.get("PRIDE_ID", config["raws"]["Pride_id"])
 VERSION = os.environ.get("VERSION", config["raws"]["Version"])
-I_PROTEINS = os.environ.get("PROTEINS", config["raws"]["Proteins"])
+# I_PROTEINS = os.environ.get("PROTEINS", config["raws"]["Proteins"])
 # I_THERMORAW = os.environ.get("THERMORAW", config["raws"]["ThermoRaw"])
+I_PROTEINS = sample_info['Assembly'].to_list()
 I_THERMORAW = sample_info['Raw file'].to_list()
 THERMOFOLD = os.environ.get("THERMOFOLD", config["raws"]["ThermoFold"])
+
 
 # data
 THERMORAW_NAMES = [os.path.splitext(os.path.basename(f))[0] for f in I_THERMORAW]
@@ -52,13 +56,14 @@ THERMORAW = expand("input/Raw/{bname}.raw", bname=THERMORAW_NAMES)
 THERMOMGF = expand("input/Raw/{bname}.mzML", bname=THERMORAW_NAMES)
 
 METADATA_FILE=expand("{iname}_info.tsv",iname=STUDY)
-DATABASE_FILE=expand("assemblies/databases/unique_{iname}_cluster_set_1.faa",iname=STUDY)
-PROTEINS_PROC  = expand("proteins/{pname}.fasta", pname=I_PROTEINS)
-PROTEINS_DECOY = expand("proteins/{pname}_concatenated_target_decoy.fasta", pname=I_PROTEINS)
+# DATABASE_FILE=expand("assemblies/databases/unique_{iname}_cluster_set_1.faa",iname=STUDY)
+DATABASE_FILE  = expand("assemblies/{pname}.fasta",pname=I_PROTEINS)
+PROTEINS_PROC  = expand("assemblies/{pname}.fasta", pname=I_PROTEINS)
+PROTEINS_DECOY = expand("assemblies/{pname}_concatenated_target_decoy.fasta", pname=I_PROTEINS)
 
-SEARCHGUI_PAR  = expand("searchgui/{fname}_searchgui.par", fname=THERMOFOLD)
-SEARCHGUI_ZIP  = expand("searchgui/{fname}_searchgui.zip", fname=THERMOFOLD)
-PEPTIDESHAKER_MZID = expand("peptideshaker/{fname}_peptideshaker.mzid", fname=THERMOFOLD)
+SEARCHGUI_PAR  = expand("searchgui/{fname}_searchgui.par", fname=PRIDE_ID)
+SEARCHGUI_ZIP  = expand("searchgui/{fname}_searchgui.zip", fname=Samples)
+PEPTIDESHAKER_MZID = expand("peptideshaker/{fname}_peptideshaker.mzid", fname=Samples)
 FINAL_MZID = expand("{fname}/{fname}_final.mzid", fname=THERMOFOLD)
 # PSM_TMP_RPT = expand("{fname}/peptideshaker_peptideshaker_1_Default_PSM_Report.txt", fname=THERMOFOLD)
 PROTEIN_TMP_RPT = expand("{fname}/peptideshaker_peptideshaker_1_Default_Protein_Report.txt", fname=THERMOFOLD)
@@ -93,11 +98,12 @@ rule ALL:
         # thermo=[THERMORAW, THERMOMGF],
         # metafile=METADATA_FILE,
         # database=[DATABASE_FILE,CONTIG_INFO_FILE],
-        # searchgui=[PROTEINS_DECOY, SEARCHGUI_PAR, SEARCHGUI_ZIP],
+        # searchgui=[PROTEINS_DECOY, SEARCHGUI_PAR]
+        searchgui=[PROTEINS_DECOY, SEARCHGUI_PAR, SEARCHGUI_ZIP]
         # report=[PROTEIN_TMP_RPT, PEPTIDE_TMP_RPT, PSM_TMP_RPT],
         # peptideshaker=PEPTIDESHAKER_MZID,
         # assembly_list=ASSEMBLY_NAMES,
-        processed=PROCESSED_RPT
+        # processed=PROCESSED_RPT
         # gff_files=GFF_FILE
 
 
@@ -181,11 +187,13 @@ rule thermorawfileparser:
 rule searchgui_decoy:
     input:
         faa=PROTEINS_PROC,
+        human_db=HUMAN_FASTA,
+        crap_db=CRAP_FASTA,
         jar=SEARCHGUI_JAR
     output:
         PROTEINS_DECOY
     log:
-        expand("logs/{fname}_SearchGUI_decoy.log",fname=THERMOFOLD)
+        expand("logs/{fname}_SearchGUI_decoy.log",fname=PRIDE_ID)
     params:
         tmpdir = TMPDIR,
         logdir = "logs/SearchGUI_decoy"
@@ -193,10 +201,14 @@ rule searchgui_decoy:
     conda:
         os.path.join(ENVDIR, "IMP_proteomics.yaml")
     message:
-        "SearchGUI decoy: {input} -> {output}"
+        "SearchGUI decoy: {input.faa} -> {output}"
+    # run:
+    #     for protein in input.faa:
+    #         shell("java -cp {input.jar} eu.isas.searchgui.cmd.FastaCLI -in {protein} -decoy -temp_folder {params.tmpdir} -log {params.logdir} &> {log}")
     shell:
-        "java -cp {input.jar} eu.isas.searchgui.cmd.FastaCLI -in {input.faa} "
-        "-decoy -temp_folder {params.tmpdir} -log {params.logdir} &> {log}"
+        "for protein in {input.faa}; do cat {input.human_db} {input.crap_db} >> $protein; "
+        "java -cp {input.jar} eu.isas.searchgui.cmd.FastaCLI -in $protein "
+        "-decoy -temp_folder {params.tmpdir} -log {params.logdir} &> {log}; done "
 
 
 rule searchgui_config:
@@ -223,41 +235,45 @@ rule searchgui_config:
 rule searchgui_search:
     input:
         par=SEARCHGUI_PAR,
-        faa=PROTEINS_DECOY,
-        mgf=THERMOMGF,
-        jar=SEARCHGUI_JAR
+        # faa=PROTEINS_DECOY,
+        # mgf=THERMOMGF,
+        jar=SEARCHGUI_JAR,
+        info=SAMPLEINFO_FILE
     output:
         SEARCHGUI_ZIP
     log:
-        expand("logs/{fname}_SearchGUI_search.log",fname=THERMOFOLD)
+        expand("logs/{fname}_SearchGUI_search.log",fname=PRIDE_ID)
     params:
-        name=expand("{fname}_searchgui", fname=THERMOFOLD),
-        tmpdir = TMPDIR,
+        # name=expand("{fname}_searchgui", fname=PRIDE_ID),
+        # tmpdir = TMPDIR,
         logdir = "logs/SearchGUI_search"
     threads: 10
     conda:
         os.path.join(ENVDIR, "IMP_proteomics.yaml")
     message:
-        "SearchGUI search: {input.par}, {input.mgf} -> {output}"
+        "SearchGUI search: {input.par} -> {output}"
     shell:
-        """
-        java -cp {input.jar} eu.isas.searchgui.cmd.SearchCLI \
-            -spectrum_files $(dirname {input.mgf[0]}) \
-            -fasta_file {input.faa} \
-            -output_folder $(dirname {output}) \
-            -id_params {input.par} \
-            -xtandem 1 \
-            -msgf 1 \
-            -comet 0 \
-            -andromeda 0 \
-            -threads {threads} \
-            -output_default_name {params.name} \
-            -output_option 0 \
-            -output_data 1 \
-            -output_date 0 \
-            -log {params.logdir} \
-            &> {log} && touch {output}
-        """
+        "python searchgui_search.py -jar {input.jar} -in {input.info} "
+        "-out $(dirname {output}) -par {input.par}"
+    # shell:
+    #     """
+    #     java -cp {input.jar} eu.isas.searchgui.cmd.SearchCLI \
+    #         -spectrum_files $(dirname {input.mgf[0]}) \
+    #         -fasta_file {input.faa} \
+    #         -output_folder $(dirname {output}) \
+    #         -id_params {input.par} \
+    #         -xtandem 1 \
+    #         -msgf 1 \
+    #         -comet 0 \
+    #         -andromeda 0 \
+    #         -threads {threads} \
+    #         -output_default_name {params.name} \
+    #         -output_option 0 \
+    #         -output_data 1 \
+    #         -output_date 0 \
+    #         -log {params.logdir} \
+    #         &> {log} && touch {output}
+    #     """
 
 
 #########################
@@ -269,25 +285,26 @@ rule peptideshaker_load:
         searchgui=SEARCHGUI_ZIP,
         jar=PEPTIDESHAKER_JAR
     output:
-        protein=PROTEIN_TMP_RPT,
-        peptide=PEPTIDE_TMP_RPT,
+        protein=PROTEIN_RPT,
+        peptide=PEPTIDE_RPT,
         mzid=PEPTIDESHAKER_MZID
     log:
-        expand("logs/{fname}_PeptideShaker_load.log",fname=THERMOFOLD)
+        expand("logs/{fname}_PeptideShaker_load.log",fname=Samples)
     threads: 10
     conda:
         os.path.join(ENVDIR, "IMP_proteomics.yaml")
     message:
         "PeptideShaker load SearchGUI results: {input.searchgui} -> {output.mzid}, {output.protein}, {output.peptide}"
     shell:
-        "java -cp {input.jar} eu.isas.peptideshaker.cmd.PeptideShakerCLI "
+        "for search in {input.searchgui}; do java -cp {input.jar} eu.isas.peptideshaker.cmd.PeptideShakerCLI "
         "-reference 'peptideshaker_peptideshaker_1' "
         "-identification_files {input.searchgui} "
         "-out_reports $(dirname {output.protein}) -reports 6,9 "
+        "-report_prefix '$(cut -d'_' -f1 <<<$(awk -F/ '{print $NF}' <<<$search))' "
         "-output_file {output.mzid} -contact_first_name 'Shengbo' -contact_last_name 'Wang' "
         "-contact_email 'shengbo_wang@ebi.ac.uk' -contact_address 'EBI' -organization_name 'EBI' "
-        "-organization_email 'test@ebi.ac.uk' -organization_address 'Cambridge' "
-        "-threads {threads} &> {log}"
+        "-organization_email 'test@ebi.ac.uk' -organization_address 'Cambridge'; "
+        "-threads {threads} &> {log}; done"
 
 
 #########################

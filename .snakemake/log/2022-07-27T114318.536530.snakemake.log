@@ -1,3 +1,0 @@
-NameError in line 334 of /Users/shengbo_wang/Documents/MetaPUF/MetaPUF/Snakefile:
-name 'PXD' is not defined
-  File "/Users/shengbo_wang/Documents/MetaPUF/MetaPUF/Snakefile", line 334, in <module>

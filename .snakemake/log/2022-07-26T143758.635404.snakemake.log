@@ -1,3 +1,0 @@
-NameError in line 142 of /Users/shengbo_wang/Documents/MetaPUF/MetaPUF/Snakefile:
-name 'urls' is not defined
-  File "/Users/shengbo_wang/Documents/MetaPUF/MetaPUF/Snakefile", line 142, in <module>

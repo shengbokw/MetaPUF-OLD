@@ -1,3 +1,0 @@
-NameError in line 315 of /Users/shengbo_wang/Documents/MetaPUF/MetaPUF/Snakefile:
-name 'SAMPLE_INFO' is not defined
-  File "/Users/shengbo_wang/Documents/MetaPUF/MetaPUF/Snakefile", line 315, in <module>

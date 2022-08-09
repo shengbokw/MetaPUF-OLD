@@ -1,2 +1,3 @@
-Sample,PRIDE Accession,Raw file,Raw file URLs,Sample Accession,Database,Assembly
-S03,PXD020692,2018_March_5_UWPRQE_HatchMicro_03.raw,http://ftp.pride.ebi.ac.uk/pride/data/archive/2021/04/PXD020692/2018_March_5_UWPRQE_HatchMicro_03.raw,SRS7098389,DB1,ERZ4291133
+Sample,Raw file,Raw file URLs,Sample Accession,Database,Assembly
+S03,2018_March_5_UWPRQE_HatchMicro_03.raw,http://ftp.pride.ebi.ac.uk/pride/data/archive/2021/04/PXD020692/2018_March_5_UWPRQE_HatchMicro_03.raw,SRS7098389,ERZ4291133,ERZ4291133
+S04,2018_March_5_UWPRQE_HatchMicro_04.raw,http://ftp.pride.ebi.ac.uk/pride/data/archive/2021/04/PXD020692/2018_March_5_UWPRQE_HatchMicro_04.raw,SRS7098390,ERZ4290864,ERZ4290864
